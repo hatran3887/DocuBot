@@ -136,4 +136,5 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_clients_email'), table_name='clients')
     op.drop_index(op.f('ix_clients_api_key'), table_name='clients')
     op.drop_table('clients')
+    op.execute("DROP EXTENSION IF EXISTS vector")
     # ### end Alembic commands ###
