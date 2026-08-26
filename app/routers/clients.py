@@ -1,5 +1,4 @@
 import secrets
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -8,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Client
 from app.schemas import ClientCreate, ClientCreateResponse, ClientResponse
+from app.dependencies import get_current_client
 
 router = APIRouter(prefix='/clients', tags=['clients'])
 
@@ -45,19 +45,11 @@ def create_client(
 
 
 @router.get(
-    '/{client_id}',
+    "/me",
     response_model=ClientResponse,
-    status_code=status.HTTP_200_OK,
-    summary='Get a client by ID'
+    summary='Get current client info',
 )
-def get_client(
-    client_id: UUID,
-    db: Session = Depends(get_db),
+def get_current_client_info(
+    current_client: Client = Depends(get_current_client),
 ) -> Client:
-    client = db.get(Client, client_id)
-    if client is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Client not found',
-        )
-    return client
+    return current_client
