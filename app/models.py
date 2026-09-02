@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
+from pathlib import Path
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -19,6 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID as PgUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.config import settings
 from app.database import Base
 
 
@@ -59,6 +61,7 @@ class Manual(Base):
         index=True,
     )
     filename: Mapped[str] = mapped_column(String(255))
+    stored_filename: Mapped[str] = mapped_column(String(255))
     version: Mapped[int] = mapped_column(Integer, default=1)
     status: Mapped[str] = mapped_column(String(20), default='uploaded')
     error_message: Mapped[str | None] = mapped_column(Text)
@@ -73,6 +76,10 @@ class Manual(Base):
     chunks: Mapped[list['ManualChunk']] = relationship(
         back_populates='manual', cascade='all, delete-orphan'
     )
+
+    @property
+    def storage_path(self) -> Path:
+        return settings.upload_dir / self.stored_filename
 
 
 class ManualChunk(Base):
