@@ -1,1 +1,37 @@
-Generic single-database configuration.
+# DocuBot
+
+Embeddable customer service chatbot. Operators upload a manual and
+get a chat widget that answers questions from that manual only.
+
+## Requirements
+
+- Docker
+- Python 3.14
+
+## Setup
+
+    python -m venv .venv
+    source .venv/bin/activate
+    pip install -r requirements.txt
+    cp .env.example .env
+
+Then edit `.env` and add your OpenAI API key.
+
+## Running
+
+    docker compose up -d
+    alembic upgrade head
+    uvicorn app.main:app --reload
+
+API docs: http://localhost:8000/docs
+
+## Current status
+
+Working:
+- Client registration with API key
+- Authenticated PDF upload with per-client isolation
+- Manual retrieval
+
+Not built yet:
+- Chunking, embeddings, retrieval
+- Chat endpoint
