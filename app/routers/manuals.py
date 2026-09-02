@@ -7,7 +7,8 @@ from fastapi import(
     File,
     HTTPException,
     UploadFile,
-    status
+    status,
+    BackgroundTasks,
 )
 from sqlalchemy.orm import Session
 
@@ -16,15 +17,18 @@ from app.database import get_db
 from app.dependencies import get_current_client
 from app.models import Client, Manual
 from app.schemas import ManualResponse
+from app.services.ingest import process_manual
 
 router = APIRouter(prefix="/manuals", tags=["manuals"])
 
 
 ALLOWED_CONTENT_TYPES = {
-    'application/pdf',
     'text/plain',
     'text/markdown',
+    'text/x-markdown',
 }
+
+ALLOWED_SUFFIXES = {'.txt', '.md', '.markdown'}
 
 
 @router.post(
@@ -34,11 +38,14 @@ ALLOWED_CONTENT_TYPES = {
     summary='Upload a manual',
 )
 def upload_manual(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_client: Client = Depends(get_current_client),
     db: Session = Depends(get_db),
 ) -> Manual:
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
+    suffix = Path(file.filename or '').suffix.lower()
+
+    if file.content_type not in ALLOWED_CONTENT_TYPES and suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
             detail=f'Unsupported file type: {file.content_type}',
@@ -61,7 +68,6 @@ def upload_manual(
         )
 
     original_name = Path(file.filename or 'upload').name
-    suffix = Path(original_name).suffix
     stored_name = f'{uuid.uuid4()}{suffix}'
     destination = settings.upload_dir / stored_name
     destination.write_bytes(contents)
@@ -76,6 +82,8 @@ def upload_manual(
     db.add(manual)
     db.commit()
     db.refresh(manual)
+
+    background_tasks.add_task(process_manual, manual.id)
 
     return manual
 

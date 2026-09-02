@@ -101,7 +101,9 @@ class ManualChunk(Base):
     content: Mapped[str] = mapped_column(Text)
     embedding: Mapped[list[float] | None] = mapped_column(Vector(1536))
     chunk_index: Mapped[int] = mapped_column(Integer)
-    token_count: Mapped[int | None] = mapped_column(Integer)
+    page_number: Mapped[int | None]
+    section_title: Mapped[str | None] = mapped_column(String(255))
+    token_count: Mapped[int] = mapped_column(Integer)
     section_reference: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
