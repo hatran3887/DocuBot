@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     max_upload_size: int = 10 * 1024 * 1024
     app_name: str = 'Docubot'
     debug: bool = False
+    embedding_model: str = 'text-embedding-3-small'
+    embedding_dimensions: int = 1536
+    embedding_batch_size: int = 100
 
 
 @lru_cache

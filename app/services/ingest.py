@@ -1,8 +1,11 @@
 from uuid import UUID
 
+from sqlalchemy import delete
+
 from app.database import SessionLocal
 from app.models import Manual, ManualChunk
 from app.services.chunking import chunk_text
+from app.services.embeddings import EmbeddingError, embed_texts
 from app.services.extraction import ExtractionError, load_text
 
 MARKDOWN_SUFFIXES = {'.md', '.markdown'}
@@ -18,12 +21,19 @@ def process_manual(manual_id: UUID) -> None:
         manual.status = 'processing'
         db.commit()
 
+        # Re-processing replaces the old chunks
+        db.execute(
+            delete(ManualChunk).where(ManualChunk.manual_id == manual.id)
+        )
+
         path = manual.storage_path
         text = load_text(path)
         chunks = chunk_text(text, path.suffix.lower() in MARKDOWN_SUFFIXES)
 
         if not chunks:
             raise ExtractionError('File produced no chunks.')
+
+        vectors = embed_texts([chunk.content for chunk in chunks])
 
         db.add_all([
             ManualChunk(
@@ -34,8 +44,9 @@ def process_manual(manual_id: UUID) -> None:
                 page_number=None,
                 section_title=chunk.section_title,
                 token_count=chunk.token_count,
+                embedding=vector,
             )
-            for chunk in chunks
+            for chunk, vector in zip(chunks, vectors, strict=True)
         ])
 
         manual.status = 'ready'
