@@ -13,6 +13,11 @@ class EmbeddingError(Exception):
     """Raised when embeddings could not be generated."""
 
 
+def embed_query(text: str) -> list[float]:
+    """Embed a single search query."""
+    return _embed_batch([text])[0]
+
+
 def embed_texts(texts: list[str]) -> list[list[float]]:
     """Return one vector per input text."""
     vectors: list[list[float]] = []

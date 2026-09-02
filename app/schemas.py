@@ -35,5 +35,26 @@ class ManualResponse(BaseModel):
     uploaded_at: datetime
 
 
+class SearchRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class SearchResultItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    chunk_id: UUID
+    manual_id: UUID
+    chunk_index: int
+    content: str
+    section_title: str
+    distance: float
+
+
+class SearchResponse(BaseModel):
+    question: str
+    results: list[SearchResultItem]
+
+
 class ErrorResponse(BaseModel):
     detail: str
