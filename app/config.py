@@ -20,6 +20,21 @@ class Settings(BaseSettings):
     embedding_model: str = 'text-embedding-3-small'
     embedding_dimensions: int = 1536
     embedding_batch_size: int = 100
+    chat_model: str = 'gpt-4o-mini'
+    chat_model_b: str = 'gpt-4.1-mini'
+    comparison_enabled: bool = True
+    chat_temperature: float = 0.0
+    chat_max_tokens: int = 800
+
+    cost_per_million: dict[str, tuple[float, float]] = {
+        'gpt-4o-mini': (0.15, 0.60),
+        'gpt-4.1-mini': (0.40, 1.60),
+    }
+
+    langfuse_public_key: str = ''
+    langfuse_secret_key: str = ''
+    langfuse_host: str = 'https://cloud.langfuse.com'
+    langfuse_enabled: bool = True
 
 
 @lru_cache
@@ -28,3 +43,15 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+# Configure the Langfuse client. Must happen before anything imports
+# langfuse.openai, which builds its client at import time.
+if settings.langfuse_enabled:
+    from langfuse import Langfuse
+
+    Langfuse(
+        public_key=settings.langfuse_public_key,
+        secret_key=settings.langfuse_secret_key,
+        host=settings.langfuse_host,
+    )

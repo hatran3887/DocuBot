@@ -1,10 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
+from email.policy import default
 from uuid import UUID, uuid4
 from pathlib import Path
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    ARRAY,
     Boolean,
     DateTime,
     ForeignKey,
@@ -150,6 +152,8 @@ class Message(Base):
         ForeignKey('conversations.id', ondelete='CASCADE'),
         index=True,
     )
+    trace_id: Mapped[str | None] = mapped_column(String(64))
+    model: Mapped[str | None] = mapped_column(String(64))
     role: Mapped[str] = mapped_column(String(20))
     content: Mapped[str] = mapped_column(Text)
     token_count: Mapped[int | None] = mapped_column(Integer)
@@ -164,9 +168,6 @@ class Message(Base):
     conversation: Mapped['Conversation'] = relationship(back_populates='messages')
     sources: Mapped[list['MessageSource']] = relationship(
         back_populates='message', cascade='all, delete-orphan'
-    )
-    generation_log: Mapped['GenerationLog | None'] = relationship(
-        back_populates='message', cascade='all, delete-orphan', uselist=False
     )
 
 
@@ -185,33 +186,40 @@ class MessageSource(Base):
         PgUUID(as_uuid=True),
         ForeignKey('manual_chunks.id', ondelete='CASCADE'),
     )
-    relevance_score: Mapped[float | None] = mapped_column(Float)
+    distance: Mapped[float | None] = mapped_column(Float)
+    rank: Mapped[int]
     message: Mapped['Message'] = relationship(back_populates='sources')
 
 
-class GenerationLog(Base):
-    __tablename__ = 'generation_logs'
+class AnswerComparison(Base):
+    __tablename__ = 'answer_comparisons'
 
-    id: Mapped[UUID] = mapped_column(
-        PgUUID(as_uuid=True), primary_key=True, default=uuid4
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    message_id: Mapped[UUID] = mapped_column(
+        ForeignKey('messages.id', ondelete='CASCADE')
     )
-    message_id: Mapped[UUID | None] = mapped_column(
-        PgUUID(as_uuid=True),
-        ForeignKey('messages.id', ondelete='CASCADE'),
-    )
-    provider: Mapped[str] = mapped_column(String(50))
-    model: Mapped[str] = mapped_column(String(100))
-    prompt_technique: Mapped[str | None] = mapped_column(String(100))
-    temperature: Mapped[float | None] = mapped_column(Float)
-    max_tokens: Mapped[int | None] = mapped_column(Integer)
-    prompt_tokens: Mapped[int | None] = mapped_column(Integer)
-    completion_tokens: Mapped[int | None] = mapped_column(Integer)
-    cost_estimate: Mapped[Decimal | None] = mapped_column(Numeric(10, 6))
-    latency_ms: Mapped[int | None] = mapped_column(Integer)
-    success: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
+    question: Mapped[str] = mapped_column(Text)
+    chunk_ids: Mapped[list[UUID]] = mapped_column(ARRAY(PgUUID(as_uuid=True)))
+    best_distance: Mapped[float]
 
-    message: Mapped['Message | None'] = relationship(back_populates='generation_log')
+    model_a: Mapped[str] = mapped_column(String(64))
+    answer_a: Mapped[str] = mapped_column(Text)
+    prompt_tokens_a: Mapped[int] = mapped_column(Integer)
+    completion_tokens_a: Mapped[int] = mapped_column(Integer)
+    cost_a: Mapped[Decimal] = mapped_column(Numeric(10, 6))
+    latency_ms_a: Mapped[int]
+
+    model_b: Mapped[str] = mapped_column(String(64))
+    answer_b: Mapped[str] = mapped_column(Text)
+    prompt_tokens_b: Mapped[int] = mapped_column(Integer)
+    completion_tokens_b: Mapped[int] = mapped_column(Integer)
+    cost_b: Mapped[Decimal] = mapped_column(Numeric(10, 6))
+    latency_ms_b: Mapped[int]
+
+    trace_id: Mapped[str | None] = mapped_column(String(64))
+
+    preferred: Mapped[str | None] = mapped_column(String(4))
+    note: Mapped[str | None] = mapped_column(Text)
+    reviewed_at: Mapped[datetime | None]
+
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

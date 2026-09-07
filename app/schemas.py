@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -58,3 +59,45 @@ class SearchResponse(BaseModel):
 
 class ErrorResponse(BaseModel):
     detail: str
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1000)
+    conversation_id: UUID | None = None
+    end_user_identifier: UUID | None = Field(default=None, max_length=255)
+    manual_id: UUID | None = None
+
+
+class SourceItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    chunk_id: UUID
+    manual_id: UUID
+    section_title: str | None
+    content: str
+
+
+class ChatResponse(BaseModel):
+    conversation_id: UUID
+    message_id: UUID
+    answer: str
+    sources: list[SourceItem]
+
+
+class MessageItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    role: str
+    content: str
+    created_at: datetime
+
+
+class ConversationMessagesResponse(BaseModel):
+    conversation_id: UUID
+    messages: list[MessageItem]
+
+
+class FeedbackRequest(BaseModel):
+    rating: Literal['up', 'down']
+    comment: str | None = Field(default=None, max_length=1000)

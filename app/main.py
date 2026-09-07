@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import settings
-from app.routers import clients, manuals, search
+from app.routers import clients, manuals, search, chat
 
 
 @asynccontextmanager
@@ -22,6 +22,7 @@ app = FastAPI(
 app.include_router(clients.router)
 app.include_router(manuals.router)
 app.include_router(search.router)
+app.include_router(chat.router)
 
 @app.get('/health', tags=['system'])
 def health():
