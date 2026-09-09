@@ -9,7 +9,7 @@ from app.models import AnswerComparison
 
 def main() -> None:
     db = SessionLocal()
-    rows = db.scalar(
+    rows = db.scalars(
         select(AnswerComparison)
         .where(AnswerComparison.preferred.is_(None))
         .order_by(AnswerComparison.created_at)
@@ -25,7 +25,7 @@ def main() -> None:
 
         print('=' * 70)
         print(f'Q: {row.question}')
-        print(f'(best retrieval distance: {row.best_distance::.3f})')
+        print(f'(best retrieval distance: {row.best_distance:.3f})')
         print(f'--- LEFT ---\n{left}\n')
         print(f'--- RIGHT ---\n{right}\n')
 

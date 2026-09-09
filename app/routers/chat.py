@@ -140,7 +140,7 @@ def create_chat_message(
     )
 
 
-@router.get('/{conversion_id}/messages', response_model=ConversationMessagesResponse)
+@router.get('/{conversation_id}/messages', response_model=ConversationMessagesResponse)
 def get_messages(
     conversation_id: UUID,
     db: Session = Depends(get_db),
@@ -156,7 +156,7 @@ def get_messages(
     if conversation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Conversation not found.')
 
-    messages = db.scalar(
+    messages = db.scalars(
         select(Message)
         .where(Message.conversation_id == conversation_id)
         .order_by(Message.created_at)
@@ -183,8 +183,13 @@ def submit_feedback(
             Conversation.client_id == current_client.id,
         )
     )
-    if message is None or message.trace_id is None:
+    if message is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Message not found.')
+    if message.trace_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Feedback can only be submitted for assistant answers.',
+        )
 
     record_feedback(message.trace_id, payload.rating, payload.comment)
 
